@@ -9,6 +9,12 @@ import org.springframework.context.annotation.Bean;
 public class SkillForgeApplication {
 
 	public static void main(String[] args) {
+		String dbUrl = System.getenv("SPRING_DATASOURCE_URL");
+		System.out.println("=================================================");
+		System.out.println(">>> SkillForge Startup Diagnostics:");
+		System.out.println(">>> SPRING_DATASOURCE_URL: " + (dbUrl != null ? dbUrl.replaceAll(":[^@/]+@", ":****@") : "NOT SET (Falling back to localhost:3306)"));
+		System.out.println(">>> SPRING_DATASOURCE_USERNAME: " + System.getenv("SPRING_DATASOURCE_USERNAME"));
+		System.out.println("=================================================");
 		SpringApplication.run(SkillForgeApplication.class, args);
 	}
 
