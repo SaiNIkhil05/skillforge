@@ -12,6 +12,15 @@ public class ResumeParseResponse {
     private List<ParsedSkillDTO> detectedSkills = new ArrayList<>();
     private int newSkillsCount;
     private int existingSkillsCount;
+    private int upgradesCount;
+    private int needsReviewCount;
+    private String targetRoleName;
+    private int targetRoleCoreCoveredCount;
+    private int targetRoleCoreTotalCount;
+    private List<String> missingCoreSkills = new ArrayList<>();
+    private List<String> detectedSections = new ArrayList<>();
+    private List<String> detectedCertifications = new ArrayList<>();
+    private double estimatedReadinessBoost;
 
     public ResumeParseResponse() {
     }
@@ -23,8 +32,16 @@ public class ResumeParseResponse {
         this.extractedTextLength = extractedTextLength;
         this.summarySnippet = summarySnippet;
         this.detectedSkills = detectedSkills != null ? detectedSkills : new ArrayList<>();
-        this.newSkillsCount = (int) this.detectedSkills.stream().filter(s -> !s.isAlreadyInProfile()).count();
-        this.existingSkillsCount = (int) this.detectedSkills.stream().filter(ParsedSkillDTO::isAlreadyInProfile).count();
+        recalculateCounts();
+    }
+
+    public void recalculateCounts() {
+        if (this.detectedSkills != null) {
+            this.newSkillsCount = (int) this.detectedSkills.stream().filter(s -> !s.isAlreadyInProfile()).count();
+            this.existingSkillsCount = (int) this.detectedSkills.stream().filter(ParsedSkillDTO::isAlreadyInProfile).count();
+            this.upgradesCount = (int) this.detectedSkills.stream().filter(s -> "UPGRADE_SUGGESTED".equals(s.getProfileStatus())).count();
+            this.needsReviewCount = (int) this.detectedSkills.stream().filter(ParsedSkillDTO::isNeedsReview).count();
+        }
     }
 
     public String getFilename() {
@@ -65,10 +82,7 @@ public class ResumeParseResponse {
 
     public void setDetectedSkills(List<ParsedSkillDTO> detectedSkills) {
         this.detectedSkills = detectedSkills;
-        if (detectedSkills != null) {
-            this.newSkillsCount = (int) detectedSkills.stream().filter(s -> !s.isAlreadyInProfile()).count();
-            this.existingSkillsCount = (int) detectedSkills.stream().filter(ParsedSkillDTO::isAlreadyInProfile).count();
-        }
+        recalculateCounts();
     }
 
     public int getNewSkillsCount() {
@@ -85,5 +99,77 @@ public class ResumeParseResponse {
 
     public void setExistingSkillsCount(int existingSkillsCount) {
         this.existingSkillsCount = existingSkillsCount;
+    }
+
+    public int getUpgradesCount() {
+        return upgradesCount;
+    }
+
+    public void setUpgradesCount(int upgradesCount) {
+        this.upgradesCount = upgradesCount;
+    }
+
+    public int getNeedsReviewCount() {
+        return needsReviewCount;
+    }
+
+    public void setNeedsReviewCount(int needsReviewCount) {
+        this.needsReviewCount = needsReviewCount;
+    }
+
+    public String getTargetRoleName() {
+        return targetRoleName;
+    }
+
+    public void setTargetRoleName(String targetRoleName) {
+        this.targetRoleName = targetRoleName;
+    }
+
+    public int getTargetRoleCoreCoveredCount() {
+        return targetRoleCoreCoveredCount;
+    }
+
+    public void setTargetRoleCoreCoveredCount(int targetRoleCoreCoveredCount) {
+        this.targetRoleCoreCoveredCount = targetRoleCoreCoveredCount;
+    }
+
+    public int getTargetRoleCoreTotalCount() {
+        return targetRoleCoreTotalCount;
+    }
+
+    public void setTargetRoleCoreTotalCount(int targetRoleCoreTotalCount) {
+        this.targetRoleCoreTotalCount = targetRoleCoreTotalCount;
+    }
+
+    public List<String> getMissingCoreSkills() {
+        return missingCoreSkills;
+    }
+
+    public void setMissingCoreSkills(List<String> missingCoreSkills) {
+        this.missingCoreSkills = missingCoreSkills;
+    }
+
+    public List<String> getDetectedSections() {
+        return detectedSections;
+    }
+
+    public void setDetectedSections(List<String> detectedSections) {
+        this.detectedSections = detectedSections;
+    }
+
+    public List<String> getDetectedCertifications() {
+        return detectedCertifications;
+    }
+
+    public void setDetectedCertifications(List<String> detectedCertifications) {
+        this.detectedCertifications = detectedCertifications;
+    }
+
+    public double getEstimatedReadinessBoost() {
+        return estimatedReadinessBoost;
+    }
+
+    public void setEstimatedReadinessBoost(double estimatedReadinessBoost) {
+        this.estimatedReadinessBoost = estimatedReadinessBoost;
     }
 }

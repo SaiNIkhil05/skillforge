@@ -100,28 +100,30 @@ export default function DashboardView({ user, onNavigateTab }) {
               ></div>
             </div>
 
-            <p style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--ink-primary)', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--ink-primary)', marginBottom: '1.25rem' }}>
               {readiness?.statusMessage}
             </p>
 
-            <div style={{ display: 'flex', gap: '2rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem' }}>
-              <div className="metric-stat">
+            <div className="stat-grid-4">
+              <div className="metric-tile metric-tile-warning">
                 <div className="metric-number tabular-nums" style={{ color: 'var(--signal-orange)' }}>
                   {readiness?.missingCoreCount ?? 0}
                 </div>
                 <div className="metric-label">Missing Core Skills</div>
               </div>
-              <div className="metric-stat">
+              <div className="metric-tile">
                 <div className="metric-number tabular-nums">
                   {readiness?.missingGoodToHaveCount ?? 0}
                 </div>
                 <div className="metric-label">Good-to-Have Gaps</div>
               </div>
-              <div className="metric-stat">
-                <div className="metric-number tabular-nums">{skillsCount}</div>
+              <div className="metric-tile metric-tile-success">
+                <div className="metric-number tabular-nums" style={{ color: 'var(--accent-forest)' }}>
+                  {skillsCount}
+                </div>
                 <div className="metric-label">Acquired Skills</div>
               </div>
-              <div className="metric-stat">
+              <div className="metric-tile">
                 <div className="metric-number tabular-nums">{projectsCount}</div>
                 <div className="metric-label">Verified Projects</div>
               </div>
@@ -147,63 +149,65 @@ export default function DashboardView({ user, onNavigateTab }) {
                 You have cleared all prioritized milestone gaps for this career role!
               </div>
             ) : (
-              <table className="editorial-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '50px' }}>Seq</th>
-                    <th>Milestone</th>
-                    <th>Associated Skill</th>
-                    <th>Priority</th>
-                    <th style={{ textAlign: 'right' }}>Status Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roadmapPreview.map(item => {
-                    const rId = item.roadmapId ?? item.item?.roadmapId;
-                    const rTitle = item.title ?? item.item?.title;
-                    const rOrder = item.orderIndex ?? item.item?.orderIndex;
-                    const rSkill = item.skillName ?? item.item?.skill?.skillName ?? 'General Milestone';
-                    const rPriority = item.priority ?? item.item?.priority;
-                    return (
-                      <tr key={rId || rTitle}>
-                        <td className="tabular-nums">{rOrder}</td>
-                        <td style={{ fontWeight: 500 }}>{rTitle}</td>
-                        <td>{rSkill}</td>
-                        <td>
-                          {rPriority === 'CORE' && <span className="priority-core-text">Core</span>}
-                          {rPriority === 'GOOD_TO_HAVE' && <span className="priority-good-text">Good to have</span>}
-                          {!rPriority && <span className="priority-good-text">&mdash;</span>}
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="segmented-control">
-                            <button
-                              type="button"
-                              className={`segmented-option ${item.status === 'NOT_STARTED' ? 'active' : ''}`}
-                              onClick={() => handleStatusToggle(rId, 'NOT_STARTED')}
-                            >
-                              Not started
-                            </button>
-                            <button
-                              type="button"
-                              className={`segmented-option ${item.status === 'IN_PROGRESS' ? 'active' : ''}`}
-                              onClick={() => handleStatusToggle(rId, 'IN_PROGRESS')}
-                            >
-                              In progress
-                            </button>
-                            <button
-                              type="button"
-                              className={`segmented-option ${item.status === 'COMPLETED' ? 'active-completed' : ''}`}
-                              onClick={() => handleStatusToggle(rId, 'COMPLETED')}
-                            >
-                              Completed
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="editorial-table-container">
+                <table className="editorial-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '60px' }}>Seq</th>
+                      <th>Milestone</th>
+                      <th>Associated Skill</th>
+                      <th>Priority</th>
+                      <th style={{ textAlign: 'right' }}>Status Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roadmapPreview.map(item => {
+                      const rId = item.roadmapId ?? item.item?.roadmapId;
+                      const rTitle = item.title ?? item.item?.title;
+                      const rOrder = item.orderIndex ?? item.item?.orderIndex;
+                      const rSkill = item.skillName ?? item.item?.skill?.skillName ?? 'General Milestone';
+                      const rPriority = item.priority ?? item.item?.priority;
+                      return (
+                        <tr key={rId || rTitle}>
+                          <td className="tabular-nums" style={{ fontWeight: 600, color: 'var(--ink-tertiary)' }}>{rOrder}</td>
+                          <td style={{ fontWeight: 500 }}>{rTitle}</td>
+                          <td><span className="badge-outline" style={{ background: 'var(--bg-subtle)' }}>{rSkill}</span></td>
+                          <td>
+                            {rPriority === 'CORE' && <span className="priority-core-badge">● Core</span>}
+                            {rPriority === 'GOOD_TO_HAVE' && <span className="priority-good-badge">○ Secondary</span>}
+                            {!rPriority && <span className="priority-good-badge">&mdash;</span>}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div className="segmented-control">
+                              <button
+                                type="button"
+                                className={`segmented-option ${item.status === 'NOT_STARTED' ? 'active' : ''}`}
+                                onClick={() => handleStatusToggle(rId, 'NOT_STARTED')}
+                              >
+                                Not started
+                              </button>
+                              <button
+                                type="button"
+                                className={`segmented-option ${item.status === 'IN_PROGRESS' ? 'active' : ''}`}
+                                onClick={() => handleStatusToggle(rId, 'IN_PROGRESS')}
+                              >
+                                In progress
+                              </button>
+                              <button
+                                type="button"
+                                className={`segmented-option ${item.status === 'COMPLETED' ? 'active-completed' : ''}`}
+                                onClick={() => handleStatusToggle(rId, 'COMPLETED')}
+                              >
+                                Completed
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 

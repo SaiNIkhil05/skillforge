@@ -24,6 +24,7 @@ export default function ProfileView({ user, onProfileUpdated }) {
   const [isParsing, setIsParsing] = useState(false);
   const [resumeResult, setResumeResult] = useState(null);
   const [selectedResumeSkills, setSelectedResumeSkills] = useState([]);
+  const [reviewFilter, setReviewFilter] = useState('ALL'); // 'ALL' | 'CORE' | 'NEW' | 'UPGRADES' | 'REVIEW'
   const [isApplyingResume, setIsApplyingResume] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -165,23 +166,44 @@ export default function ProfileView({ user, onProfileUpdated }) {
       return;
     }
 
+    if (file.size > 15 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Resume file size exceeds the 15 MB limit. Please upload a smaller document.' });
+      return;
+    }
+
     try {
       setIsParsing(true);
       setMessage({ type: 'info', text: `Analyzing ${file.name} using Apache Tika...` });
       const result = await api.uploadResume(file);
       setResumeResult(result);
+      setReviewFilter('ALL');
 
-      // Pre-select skills that are not already in profile
-      const initialSelections = (result.detectedSkills || []).map(s => ({
-        skillId: s.skillId,
-        skillName: s.skillName,
-        category: s.category,
-        proficiency: s.proficiency || 'BEGINNER',
-        confidence: s.confidence,
-        snippet: s.snippet,
-        alreadyInProfile: s.alreadyInProfile,
-        selected: !s.alreadyInProfile
-      }));
+      // Pre-select skills that are new competencies or upgrade suggested
+      const initialSelections = (result.detectedSkills || []).map(s => {
+        const isNew = s.profileStatus === 'NEW_COMPETENCY' || !s.alreadyInProfile;
+        const isUpgrade = s.profileStatus === 'UPGRADE_SUGGESTED';
+        return {
+          skillId: s.skillId,
+          skillName: s.skillName,
+          category: s.category,
+          proficiency: s.proficiency || 'BEGINNER',
+          confidence: s.confidence,
+          confidenceLevel: s.confidenceLevel || (s.confidence >= 0.85 ? 'HIGH' : s.confidence >= 0.65 ? 'MEDIUM' : 'LOW'),
+          snippet: s.snippet || s.evidenceSnippet,
+          evidenceSnippet: s.evidenceSnippet || s.snippet,
+          sectionName: s.sectionName || 'SKILLS',
+          evidenceType: s.evidenceType || 'SKILL_LIST',
+          reasoning: s.reasoning || '',
+          alreadyInProfile: s.alreadyInProfile,
+          profileStatus: s.profileStatus || (s.alreadyInProfile ? 'EXISTING_CONFIRMED' : 'NEW_COMPETENCY'),
+          currentProficiency: s.currentProficiency || null,
+          isTargetRoleRequired: !!s.isTargetRoleRequired,
+          targetRolePriority: s.targetRolePriority || null,
+          targetRoleWeight: s.targetRoleWeight || null,
+          needsReview: !!s.needsReview,
+          selected: isNew || isUpgrade
+        };
+      });
       setSelectedResumeSkills(initialSelections);
       setMessage(null);
     } catch (err) {
@@ -214,6 +236,16 @@ export default function ProfileView({ user, onProfileUpdated }) {
     setSelectedResumeSkills(prev => prev.map(s => ({ ...s, selected: selectVal })));
   };
 
+  const handleSelectFilteredSkills = (selectVal, visibleList) => {
+    const visibleIds = new Set((visibleList || []).map(s => s.skillId));
+    setSelectedResumeSkills(prev => prev.map(s => {
+      if (visibleIds.has(s.skillId)) {
+        return { ...s, selected: selectVal };
+      }
+      return s;
+    }));
+  };
+
   const handleApplyResumeSkills = async () => {
     const approved = selectedResumeSkills.filter(s => s.selected).map(s => ({
       skillId: s.skillId,
@@ -228,9 +260,15 @@ export default function ProfileView({ user, onProfileUpdated }) {
     try {
       setIsApplyingResume(true);
       const res = await api.applyResumeSkills(approved);
+      const scoreDiffText = (res.scoreIncrease && res.scoreIncrease > 0)
+        ? ` Readiness score increased by +${res.scoreIncrease.toFixed(1)}%! New readiness: ${Math.round(res.newReadinessScore)}%.`
+        : (res.newReadinessScore !== undefined)
+          ? ` Current readiness: ${Math.round(res.newReadinessScore)}%.`
+          : ' Readiness recalculated!';
+
       setMessage({
         type: 'success',
-        text: `${res.message || `Added ${approved.length} competencies.`} Readiness recalculated!`
+        text: `${res.message || `Synchronized ${approved.length} competencies.`}${scoreDiffText}`
       });
       setResumeResult(null);
       setSelectedResumeSkills([]);
@@ -257,6 +295,19 @@ export default function ProfileView({ user, onProfileUpdated }) {
   });
 
   const selectedCount = selectedResumeSkills.filter(s => s.selected).length;
+
+  const coreFilterCount = selectedResumeSkills.filter(s => s.isTargetRoleRequired && s.targetRolePriority === 'CORE').length;
+  const newFilterCount = selectedResumeSkills.filter(s => s.profileStatus === 'NEW_COMPETENCY' || !s.alreadyInProfile).length;
+  const upgradeFilterCount = selectedResumeSkills.filter(s => s.profileStatus === 'UPGRADE_SUGGESTED').length;
+  const reviewFilterCount = selectedResumeSkills.filter(s => s.needsReview).length;
+
+  const filteredResumeSkills = selectedResumeSkills.filter(s => {
+    if (reviewFilter === 'CORE') return s.isTargetRoleRequired && s.targetRolePriority === 'CORE';
+    if (reviewFilter === 'NEW') return s.profileStatus === 'NEW_COMPETENCY' || !s.alreadyInProfile;
+    if (reviewFilter === 'UPGRADES') return s.profileStatus === 'UPGRADE_SUGGESTED';
+    if (reviewFilter === 'REVIEW') return s.needsReview;
+    return true; // 'ALL'
+  });
 
   return (
     <div>
@@ -592,7 +643,7 @@ export default function ProfileView({ user, onProfileUpdated }) {
         </div>
       </div>
 
-      {/* FEATURE 1: RESUME EXTRACTION PREVIEW MODAL */}
+      {/* FEATURE 1: AI RESUME EXTRACTION REVIEW MODAL */}
       {resumeResult && (
         <div style={{
           position: 'fixed',
@@ -600,115 +651,326 @@ export default function ProfileView({ user, onProfileUpdated }) {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(28, 27, 25, 0.65)',
-          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(28, 27, 25, 0.7)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1000,
-          padding: '1.5rem'
+          padding: '1.25rem'
         }}>
           <div style={{
-            backgroundColor: 'var(--bg-paper-clean)',
-            borderRadius: '6px',
+            backgroundColor: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-stone)',
             width: '100%',
-            maxWidth: '850px',
-            maxHeight: '90vh',
+            maxWidth: '1080px',
+            maxHeight: '92vh',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)'
+            boxShadow: 'var(--shadow-lg)'
           }}>
             {/* Modal Header */}
             <div style={{
               padding: '1.25rem 1.75rem',
-              borderBottom: '1px solid var(--border-subtle)',
+              borderBottom: '1px solid var(--border-stone)',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'flex-start',
+              backgroundColor: 'var(--bg-paper-clean)'
             }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Resume Competencies Detected</h3>
-                <div style={{ fontSize: '0.82rem', color: 'var(--ink-secondary)', marginTop: '0.2rem' }}>
-                  Parsed from <strong>{resumeResult.filename}</strong> ({resumeResult.newSkillsCount} new • {resumeResult.existingSkillsCount} already in profile)
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.28rem', fontFamily: 'var(--font-serif)' }}>Resume Competency Parser</h3>
+                  <span className="badge-core" style={{ fontSize: '0.68rem', padding: '0.15rem 0.5rem' }}>AI Verified</span>
+                </div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--ink-secondary)', marginTop: '0.35rem', display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
+                  <span>Source: <strong>{resumeResult.filename}</strong></span>
+                  <span>•</span>
+                  <span><strong>{resumeResult.totalSkillsDetected || selectedResumeSkills.length}</strong> competencies detected</span>
+                  <span>•</span>
+                  <span style={{ color: 'var(--accent-forest)', fontWeight: 600 }}>{resumeResult.newSkillsCount || 0} new</span>
+                  <span>•</span>
+                  <span style={{ color: 'var(--signal-orange)', fontWeight: 600 }}>{resumeResult.upgradesCount || 0} upgrades</span>
+                  {resumeResult.targetRoleCoreCoveredCount !== undefined && (
+                    <>
+                      <span>•</span>
+                      <span>Target Role Core: <strong>{resumeResult.targetRoleCoreCoveredCount}/{resumeResult.targetRoleCoreTotalCount}</strong></span>
+                    </>
+                  )}
+                  {resumeResult.estimatedReadinessBoost > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="status-badge-acquired" style={{ fontSize: '0.72rem', padding: '0.1rem 0.45rem' }}>
+                        +{Math.round(resumeResult.estimatedReadinessBoost)}% Potential Readiness
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
               <button
                 onClick={() => setResumeResult(null)}
-                style={{ background: 'transparent', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: 'var(--ink-secondary)' }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  lineHeight: '1',
+                  cursor: 'pointer',
+                  color: 'var(--ink-secondary)',
+                  padding: '0.2rem'
+                }}
+                aria-label="Close modal"
               >
                 &times;
               </button>
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '1.5rem 1.75rem', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)' }}>
-                  Confirm which skills to apply to your SkillForge profile. Adjust estimated proficiency if needed.
+            <div style={{ padding: '1.35rem 1.75rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Benchmark Role Information */}
+              {resumeResult.targetRoleName && (
+                <div style={{
+                  backgroundColor: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-stone)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-tertiary)', fontWeight: 700 }}>
+                      Benchmark Career Track
+                    </span>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--ink-primary)', marginTop: '2px' }}>
+                      {resumeResult.targetRoleName}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--ink-secondary)' }}>
+                    Core Requirements Identified: <strong style={{ color: 'var(--accent-forest)' }}>{resumeResult.targetRoleCoreCoveredCount || 0}</strong> of <strong>{resumeResult.targetRoleCoreTotalCount || 0}</strong>
+                  </div>
                 </div>
+              )}
+
+              {/* Missing Core Skills Notice */}
+              {resumeResult.missingCoreSkills && resumeResult.missingCoreSkills.length > 0 && (
+                <div style={{
+                  backgroundColor: 'var(--signal-orange-subtle)',
+                  border: '1px solid rgba(194, 86, 31, 0.25)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.65rem 0.95rem',
+                  fontSize: '0.8rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.25rem' }}>
+                    <span style={{ color: 'var(--signal-orange)', fontWeight: 700 }}>⚠️ Unmatched Target Role Core Skills:</span>
+                    <span style={{ color: 'var(--ink-secondary)', fontSize: '0.75rem' }}>(Not identified in resume)</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.3rem' }}>
+                    {resumeResult.missingCoreSkills.map((sk, idx) => (
+                      <span key={idx} className="status-badge-missing" style={{ fontSize: '0.72rem', padding: '0.1rem 0.5rem' }}>
+                        {sk}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recognized Certifications */}
+              {resumeResult.detectedCertifications && resumeResult.detectedCertifications.length > 0 && (
+                <div style={{
+                  backgroundColor: 'var(--accent-forest-subtle)',
+                  border: '1px solid rgba(31, 77, 58, 0.25)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.65rem 0.95rem',
+                  fontSize: '0.8rem'
+                }}>
+                  <div style={{ fontWeight: 700, color: 'var(--accent-forest)', marginBottom: '0.25rem' }}>
+                    🎖️ Recognized Industry Certifications Detected:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.3rem' }}>
+                    {resumeResult.detectedCertifications.map((cert, idx) => (
+                      <span key={idx} className="status-badge-acquired" style={{ fontSize: '0.72rem', padding: '0.15rem 0.55rem' }}>
+                        ✓ {cert}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Filter Tabs & Quick Actions Bar */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div className="segmented-control">
+                  <button
+                    type="button"
+                    className={`segmented-option ${reviewFilter === 'ALL' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('ALL')}
+                  >
+                    All ({selectedResumeSkills.length})
+                  </button>
+                  {coreFilterCount > 0 && (
+                    <button
+                      type="button"
+                      className={`segmented-option ${reviewFilter === 'CORE' ? 'active' : ''}`}
+                      onClick={() => setReviewFilter('CORE')}
+                    >
+                      Target Core ({coreFilterCount})
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`segmented-option ${reviewFilter === 'NEW' ? 'active' : ''}`}
+                    onClick={() => setReviewFilter('NEW')}
+                  >
+                    New ({newFilterCount})
+                  </button>
+                  {upgradeFilterCount > 0 && (
+                    <button
+                      type="button"
+                      className={`segmented-option ${reviewFilter === 'UPGRADES' ? 'active' : ''}`}
+                      onClick={() => setReviewFilter('UPGRADES')}
+                    >
+                      Upgrades ({upgradeFilterCount})
+                    </button>
+                  )}
+                  {reviewFilterCount > 0 && (
+                    <button
+                      type="button"
+                      className={`segmented-option ${reviewFilter === 'REVIEW' ? 'active' : ''}`}
+                      onClick={() => setReviewFilter('REVIEW')}
+                    >
+                      Review Needed ({reviewFilterCount})
+                    </button>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
-                    onClick={() => handleSelectAllResumeSkills(true)}
+                    type="button"
+                    onClick={() => handleSelectFilteredSkills(true, filteredResumeSkills)}
                     className="btn-editorial-secondary btn-editorial-sm"
-                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
                   >
-                    Select All
+                    Select Filtered
                   </button>
                   <button
-                    onClick={() => handleSelectAllResumeSkills(false)}
+                    type="button"
+                    onClick={() => handleSelectFilteredSkills(false, filteredResumeSkills)}
                     className="btn-editorial-secondary btn-editorial-sm"
-                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
                   >
-                    Deselect All
+                    Deselect Filtered
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAllResumeSkills(true)}
+                    className="btn-editorial-secondary btn-editorial-sm"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                  >
+                    Select All
                   </button>
                 </div>
               </div>
 
-              {selectedResumeSkills.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--ink-secondary)' }}>
-                  No catalog competencies detected in the uploaded resume.
+              {/* Competencies Table */}
+              {filteredResumeSkills.length === 0 ? (
+                <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--ink-secondary)', backgroundColor: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                  No competencies match the selected filter.
                 </div>
               ) : (
-                <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border-stone)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
                   <table className="editorial-table" style={{ margin: 0 }}>
                     <thead>
                       <tr>
                         <th style={{ width: '40px', textAlign: 'center' }}>✓</th>
                         <th>Competency</th>
-                        <th>Category</th>
-                        <th>Estimated Proficiency</th>
-                        <th>Confidence</th>
-                        <th>Resume Context Evidence</th>
+                        <th>Target Role Relevance</th>
+                        <th>Proficiency Estimation</th>
+                        <th>Confidence & Source</th>
+                        <th>Evidence & Context</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedResumeSkills.map(item => (
-                        <tr key={item.skillId} style={{ backgroundColor: item.selected ? 'rgba(31, 77, 58, 0.02)' : 'transparent' }}>
+                      {filteredResumeSkills.map(item => (
+                        <tr
+                          key={item.skillId}
+                          style={{
+                            backgroundColor: item.selected ? 'rgba(31, 77, 58, 0.025)' : 'transparent',
+                            opacity: item.selected ? 1 : 0.7
+                          }}
+                        >
                           <td style={{ textAlign: 'center' }}>
                             <input
                               type="checkbox"
                               checked={item.selected}
                               onChange={() => handleToggleSelectSkill(item.skillId)}
+                              style={{ cursor: 'pointer' }}
                             />
                           </td>
                           <td>
-                            <div style={{ fontWeight: 600 }}>{item.skillName}</div>
-                            {item.alreadyInProfile && (
-                              <span style={{ fontSize: '0.68rem', color: 'var(--accent-burnt)', display: 'block' }}>
-                                Already in profile
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                              <strong style={{ fontSize: '0.88rem' }}>{item.skillName}</strong>
+                              <span className="badge-outline" style={{ fontSize: '0.65rem' }}>{item.category}</span>
+                            </div>
+                            <div style={{ marginTop: '0.25rem' }}>
+                              {item.profileStatus === 'UPGRADE_SUGGESTED' && (
+                                <span className="status-badge-acquired" style={{ fontSize: '0.68rem', padding: '0.1rem 0.45rem' }}>
+                                  📈 Upgrade Suggested
+                                </span>
+                              )}
+                              {item.profileStatus === 'NEW_COMPETENCY' && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  padding: '0.1rem 0.45rem',
+                                  borderRadius: 'var(--radius-full)',
+                                  backgroundColor: 'rgba(31, 77, 58, 0.1)',
+                                  color: 'var(--accent-forest)',
+                                  fontWeight: 600
+                                }}>
+                                  ✨ New Competency
+                                </span>
+                              )}
+                              {item.profileStatus === 'EXISTING_CONFIRMED' && (
+                                <span style={{ fontSize: '0.68rem', color: 'var(--ink-tertiary)' }}>
+                                  Already at {item.currentProficiency}
+                                </span>
+                              )}
+                              {item.profileStatus === 'DISCREPANCY_FLAGGED' && (
+                                <span className="status-badge-missing" style={{ fontSize: '0.68rem', padding: '0.1rem 0.45rem' }}>
+                                  ⚠️ Profile Discrepancy
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            {item.isTargetRoleRequired ? (
+                              item.targetRolePriority === 'CORE' ? (
+                                <span className="priority-core-badge" style={{ fontSize: '0.72rem' }}>
+                                  ★ Core (Weight {item.targetRoleWeight || 1.5})
+                                </span>
+                              ) : (
+                                <span className="priority-good-badge" style={{ fontSize: '0.72rem' }}>
+                                  Good-to-Have (Weight {item.targetRoleWeight || 1.0})
+                                </span>
+                              )
+                            ) : (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--ink-tertiary)' }}>
+                                General Technical
                               </span>
                             )}
                           </td>
                           <td>
-                            <span className="badge-outline">{item.category}</span>
-                          </td>
-                          <td>
+                            {item.currentProficiency && item.currentProficiency !== item.proficiency && (
+                              <div style={{ fontSize: '0.68rem', color: 'var(--ink-tertiary)', marginBottom: '3px' }}>
+                                Current: <strong>{item.currentProficiency}</strong> ➔
+                              </div>
+                            )}
                             <select
                               className="editorial-select"
                               value={item.proficiency}
                               onChange={(e) => handleResumeSkillProficiencyChange(item.skillId, e.target.value)}
-                              style={{ padding: '0.2rem 0.4rem', fontSize: '0.78rem' }}
+                              style={{ padding: '0.2rem 0.4rem', fontSize: '0.78rem', width: 'auto' }}
                             >
                               <option value="BEGINNER">Beginner (50%)</option>
                               <option value="INTERMEDIATE">Intermediate (80%)</option>
@@ -716,12 +978,50 @@ export default function ProfileView({ user, onProfileUpdated }) {
                             </select>
                           </td>
                           <td>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-forest)' }}>
-                              {Math.round(item.confidence * 100)}%
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                color: item.confidence >= 0.8 ? 'var(--accent-forest)' : item.confidence >= 0.6 ? 'var(--signal-orange)' : 'var(--ink-secondary)'
+                              }}>
+                                {Math.round(item.confidence * 100)}%
+                              </span>
+                              <span style={{
+                                fontSize: '0.65rem',
+                                padding: '1px 5px',
+                                borderRadius: '3px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                fontWeight: 600,
+                                backgroundColor: item.confidenceLevel === 'HIGH' ? 'var(--accent-forest-subtle)' : 'var(--bg-subtle)',
+                                color: item.confidenceLevel === 'HIGH' ? 'var(--accent-forest)' : 'var(--ink-secondary)'
+                              }}>
+                                {item.confidenceLevel}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--ink-tertiary)', marginTop: '2px' }}>
+                              Section: <strong>{item.sectionName}</strong>
+                            </div>
                           </td>
-                          <td style={{ fontSize: '0.78rem', color: 'var(--ink-secondary)', maxWidth: '240px' }}>
-                            <em>{item.snippet || 'Referenced in skills inventory'}</em>
+                          <td style={{ maxWidth: '280px' }}>
+                            <div style={{
+                              fontStyle: 'italic',
+                              fontSize: '0.76rem',
+                              color: 'var(--ink-primary)',
+                              backgroundColor: 'var(--bg-subtle)',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: '3px',
+                              borderLeft: '2px solid var(--accent-forest)',
+                              marginBottom: '0.25rem',
+                              lineHeight: 1.35
+                            }}>
+                              "{item.evidenceSnippet || item.snippet || 'Referenced in skills inventory'}"
+                            </div>
+                            {item.reasoning && (
+                              <div style={{ fontSize: '0.68rem', color: 'var(--ink-tertiary)', lineHeight: 1.25 }}>
+                                {item.reasoning}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -734,15 +1034,23 @@ export default function ProfileView({ user, onProfileUpdated }) {
             {/* Modal Footer */}
             <div style={{
               padding: '1.25rem 1.75rem',
-              borderTop: '1px solid var(--border-subtle)',
+              borderTop: '1px solid var(--border-stone)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              backgroundColor: 'var(--bg-paper)'
+              backgroundColor: 'var(--bg-paper-clean)',
+              borderRadius: '0 0 var(--radius-md) var(--radius-md)'
             }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)' }}>
-                <strong>{selectedCount}</strong> competencies selected to merge
-              </span>
+              <div>
+                <span style={{ fontSize: '0.85rem', color: 'var(--ink-secondary)' }}>
+                  <strong>{selectedCount}</strong> competencies selected to merge
+                </span>
+                {resumeResult.estimatedReadinessBoost > 0 && selectedCount > 0 && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-forest)', marginLeft: '0.75rem', fontWeight: 600 }}>
+                    (Est. readiness recalculation triggered upon confirm)
+                  </span>
+                )}
+              </div>
 
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
