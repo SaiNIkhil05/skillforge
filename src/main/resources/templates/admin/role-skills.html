@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Configure Role Skills — Admin')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('roles')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                <a th:href="@{/admin/roles}" style="color: var(--accent-forest); text-decoration: none;">&larr; Return to Roles</a> &bull; Role Specifications
+            </p>
+            <h1 style="margin-bottom: 0.25rem;" th:text="${'Required Skills: ' + role.roleName}">Required Skills</h1>
+            <p style="font-size: 0.95rem;">
+                Define the benchmark competency requirements, priorities (Core vs Good-to-Have), and numerical score weights.
+            </p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Form to Add/Update Skill -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div class="editorial-card-title">Add / Update Required Skill</div>
+                </div>
+                <form th:action="@{'/admin/roles/' + ${role.roleId} + '/skills/add'}" th:object="${reqSkillRequest}" method="post">
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="skillId">Select Skill</label>
+                        <select id="skillId" th:field="*{skillId}" class="editorial-select" required>
+                            <option value="">-- Choose Skill from Catalog --</option>
+                            <option th:each="s : ${allSkills}" th:value="${s.skillId}" th:text="${s.skillName + ' (' + s.category.name() + ')'}">
+                                Java (LANGUAGE)
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="priority">Priority Classification</label>
+                        <select id="priority" th:field="*{priority}" class="editorial-select" required>
+                            <option th:each="p : ${priorities}" th:value="${p.name()}" th:text="${p.name()}">CORE</option>
+                        </select>
+                    </div>
+
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="weight">Score Weight (Numeric Contribution)</label>
+                        <input type="number" id="weight" th:field="*{weight}" class="editorial-input" placeholder="e.g. 10 for Core, 4 for Secondary" required min="1" max="100">
+                        <div class="editorial-field-hint">Recommended: 10 for CORE skills, 4 for GOOD_TO_HAVE.</div>
+                    </div>
+
+                    <button type="submit" class="btn-editorial-primary btn-editorial-sm">+ Save Requirement</button>
+                </form>
+            </div>
+
+            <!-- Summary & Details -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div class="editorial-card-title">Role Profile Summary</div>
+                </div>
+                <p style="font-size: 0.875rem;" th:text="${role.description}">Role description.</p>
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                    <div class="metric-stat">
+                        <div class="metric-number tabular-nums" th:text="${requiredSkills.size()}">0</div>
+                        <div class="metric-label">Configured Competencies</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Required Skills Table -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Currently Configured Requirements</div>
+                <span class="badge-outline" th:text="${requiredSkills.size() + ' Total'}">0 Total</span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(requiredSkills)}" style="color: var(--ink-secondary); font-size: 0.875rem;">
+                No skills configured for this role yet. Add requirements using the form above.
+            </div>
+
+            <table th:unless="${#lists.isEmpty(requiredSkills)}" class="editorial-table">
+                <thead>
+                    <tr>
+                        <th>Skill Name</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Weight</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${requiredSkills}">
+                        <td style="font-weight: 600;" th:text="${r.skill.skillName}">Java</td>
+                        <td>
+                            <span class="badge-outline" th:text="${r.skill.category.name()}">LANGUAGE</span>
+                        </td>
+                        <td>
+                            <span th:if="${r.priority.name() == 'CORE'}" class="priority-core-text">Core</span>
+                            <span th:if="${r.priority.name() == 'GOOD_TO_HAVE'}" class="priority-good-text">Good to have</span>
+                        </td>
+                        <td class="tabular-nums font-mono" th:text="${r.weight}">10</td>
+                        <td style="text-align: right;">
+                            <form th:action="@{'/admin/roles/' + ${role.roleId} + '/skills/delete'}" method="post" style="display:inline; margin:0;">
+                                <input type="hidden" name="id" th:value="${r.id}">
+                                <button type="submit" class="btn-editorial-danger btn-editorial-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

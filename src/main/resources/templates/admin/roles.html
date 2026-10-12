@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Career Roles — Admin Console')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('roles')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                Administrator Console &bull; Benchmark Specifications
+            </p>
+            <h1 style="margin-bottom: 0.25rem;">Career Roles</h1>
+            <p style="font-size: 0.95rem;">
+                Define career tracks, configure their required competencies, weights, and sequential learning milestones.
+            </p>
+        </div>
+
+        <div class="grid-3" style="margin-bottom: 2rem;">
+            <div class="metric-stat">
+                <div class="metric-number tabular-nums" th:text="${roles.size()}">0</div>
+                <div class="metric-label">Active Career Roles</div>
+            </div>
+            <div class="metric-stat">
+                <div class="metric-number tabular-nums" th:text="${totalStudents}">0</div>
+                <div class="metric-label">Registered Students</div>
+            </div>
+            <div class="metric-stat">
+                <div class="metric-number tabular-nums" th:text="${totalSkills}">0</div>
+                <div class="metric-label">Skills Catalog Size</div>
+            </div>
+        </div>
+
+        <!-- Add Career Role Form -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Create New Career Role</div>
+            </div>
+            <form th:action="@{/admin/roles/create}" th:object="${newRole}" method="post">
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="roleName">Role Title</label>
+                    <input type="text" id="roleName" th:field="*{roleName}" class="editorial-input" placeholder="e.g. Cloud DevOps Engineer" required>
+                </div>
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="description">Role Description & Expectations</label>
+                    <textarea id="description" th:field="*{description}" class="editorial-textarea" rows="2" placeholder="Responsibilities and industry standard expectations..."></textarea>
+                </div>
+                <button type="submit" class="btn-editorial-primary btn-editorial-sm">+ Create Career Role</button>
+            </form>
+        </div>
+
+        <!-- Career Roles Table -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Existing Career Roles</div>
+            </div>
+            <table class="editorial-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th>Role Title</th>
+                        <th>Description</th>
+                        <th style="text-align: right;">Configuration Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${roles}">
+                        <td class="tabular-nums font-mono" th:text="${r.roleId}">1</td>
+                        <td style="font-weight: 600;" th:text="${r.roleName}">Java Backend Developer</td>
+                        <td style="font-size: 0.8125rem; color: var(--ink-secondary); max-width: 400px;" th:text="${r.description}">Description text</td>
+                        <td style="text-align: right;">
+                            <a th:href="@{'/admin/roles/' + ${r.roleId} + '/skills'}" class="btn-editorial-secondary btn-editorial-sm" style="margin-right: 0.5rem;">
+                                Configure Skills
+                            </a>
+                            <a th:href="@{'/admin/roles/' + ${r.roleId} + '/roadmap'}" class="btn-editorial-secondary btn-editorial-sm">
+                                Configure Roadmap
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

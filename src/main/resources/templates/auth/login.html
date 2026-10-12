@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Sign In — SkillForge')}"></head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem;">
+    <div style="width: 100%; max-width: 440px;">
+        <div style="margin-bottom: 2rem; text-align: left;">
+            <a th:href="@{/}" style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; color: var(--accent-forest); text-decoration: none;">SkillForge</a>
+            <h1 style="font-size: 1.75rem; margin-top: 1rem; margin-bottom: 0.25rem;">Sign In</h1>
+            <p style="font-size: 0.875rem;">Access your career readiness evaluation and dynamic roadmaps.</p>
+        </div>
+
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div class="editorial-card">
+            <form th:action="@{/login}" th:object="${loginRequest}" method="post">
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="email">College Email Address</label>
+                    <input type="email" id="email" th:field="*{email}" class="editorial-input" placeholder="student@college.edu" required autofocus>
+                    <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="editorial-error-message"></div>
+                </div>
+
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="password">Password</label>
+                    <input type="password" id="password" th:field="*{password}" class="editorial-input" required>
+                    <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="editorial-error-message"></div>
+                </div>
+
+                <button type="submit" class="btn-editorial-primary w-100" style="display:block; text-align:center; padding: 0.65rem;">
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <div style="font-size: 0.8125rem; color: var(--ink-secondary); margin-top: 1.5rem; text-align: center;">
+            Don't have an account? <a th:href="@{/register}" style="color: var(--accent-forest); font-weight: 600;">Register with your college email</a>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1rem; border: 1px dashed var(--border-stone); font-size: 0.75rem; color: var(--ink-secondary); background: var(--bg-surface);">
+            <strong>Seeded Credentials for Testing:</strong><br>
+            • Student: <code>student@college.edu</code> / <code>Student@123</code><br>
+            • Admin: <code>admin@college.edu</code> / <code>Admin@123</code>
+        </div>
+    </div>
+</body>
+</html>

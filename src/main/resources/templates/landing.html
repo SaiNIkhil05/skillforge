@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('SkillForge — Career Readiness & Skill-Gap Analysis')}"></head>
+<body>
+    <header style="border-bottom: 1px solid var(--border-stone); background: var(--bg-surface); padding: 1rem 2rem;">
+        <div style="max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <a th:href="@{/}" style="font-family: var(--font-serif); font-size: 1.35rem; font-weight: 700; color: var(--accent-forest); text-decoration: none;">SkillForge</a>
+                <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-tertiary); margin-left: 0.5rem;">Career Readiness Platform</span>
+            </div>
+            <div>
+                <a th:href="@{/login}" class="btn-editorial-secondary" style="margin-right: 0.75rem;">Sign In</a>
+                <a th:href="@{/register}" class="btn-editorial-primary">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <main style="max-width: 1100px; margin: 3rem auto; padding: 0 1.5rem;">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 3.5rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 600; color: var(--accent-forest); margin-bottom: 0.5rem;">Objective Readiness Evaluation</p>
+            <h1 style="font-size: 2.75rem; margin-bottom: 1rem; max-width: 780px;">Campus guidance is a generic list. SkillForge gives you a number.</h1>
+            <p style="font-size: 1.1rem; max-width: 720px; color: var(--ink-secondary); line-height: 1.6;">
+                Compare your actual coursework, proficiencies, and projects against authoritative industry role specifications. Identify your exact gap, split into core and good-to-have competencies, and execute a dynamic, gap-only learning roadmap.
+            </p>
+            <div style="margin-top: 1.5rem;">
+                <a th:href="@{/register}" class="btn-editorial-primary" style="padding: 0.7rem 1.4rem; font-size: 0.95rem;">Build Your Readiness Profile</a>
+                <a th:href="@{/login}" class="btn-editorial-secondary" style="padding: 0.7rem 1.4rem; font-size: 0.95rem; margin-left: 0.75rem;">Sign In with College ID</a>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 2.5rem; margin-bottom: 3.5rem; padding: 1.5rem 0; border-top: 1px solid var(--border-stone); border-bottom: 1px solid var(--border-stone);">
+            <div class="metric-stat">
+                <div class="metric-number tabular-nums" th:text="${totalRoles}">4</div>
+                <div class="metric-label">Target Career Roles</div>
+            </div>
+            <div class="metric-stat">
+                <div class="metric-number tabular-nums" th:text="${totalSkills}">40+</div>
+                <div class="metric-label">Cataloged Competencies</div>
+            </div>
+            <div class="metric-stat">
+                <div class="metric-number">Weighted</div>
+                <div class="metric-label">Readiness Formula</div>
+            </div>
+        </div>
+
+        <div>
+            <h2 style="font-size: 1.6rem; margin-bottom: 1.5rem;">Available Target Roles</h2>
+            <div class="grid-2">
+                <div th:each="r : ${roles}" class="editorial-card" style="margin-bottom: 0;">
+                    <h3 th:text="${r.roleName}" style="margin-bottom: 0.5rem; font-size: 1.25rem;">Java Backend Developer</h3>
+                    <p th:text="${r.description}" style="font-size: 0.875rem; color: var(--ink-secondary); margin-bottom: 1.25rem;">
+                        Designs and builds enterprise server-side microservices and APIs.
+                    </p>
+                    <a th:href="@{/login}" class="btn-editorial-secondary btn-editorial-sm">Evaluate Readiness &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

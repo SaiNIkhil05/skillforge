@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Configure Role Roadmap — Admin')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('roles')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                <a th:href="@{/admin/roles}" style="color: var(--accent-forest); text-decoration: none;">&larr; Return to Roles</a> &bull; Sequence Milestones
+            </p>
+            <h1 style="margin-bottom: 0.25rem;" th:text="${'Roadmap Milestones: ' + role.roleName}">Roadmap Milestones</h1>
+            <p style="font-size: 0.95rem;">
+                Curate sequential learning actions that bridge gaps for candidates pursuing this career role.
+            </p>
+        </div>
+
+        <!-- Add Roadmap Item Form -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Add Roadmap Learning Step</div>
+            </div>
+            <form th:action="@{'/admin/roles/' + ${role.roleId} + '/roadmap/add'}" th:object="${roadmapRequest}" method="post">
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="title">Milestone Title / Action</label>
+                    <input type="text" id="title" th:field="*{title}" class="editorial-input" placeholder="e.g. Master Spring Security 6 stateless JWT architecture" required>
+                </div>
+
+                <div class="grid-2">
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="skillId">Linked Competency (Optional)</label>
+                        <select id="skillId" th:field="*{skillId}" class="editorial-select">
+                            <option value="">-- No Direct Skill Link (General Milestone) --</option>
+                            <option th:each="s : ${allSkills}" th:value="${s.skillId}" th:text="${s.skillName + ' (' + s.category.name() + ')'}">
+                                Spring Security (FRAMEWORK)
+                            </option>
+                        </select>
+                        <div class="editorial-field-hint">Completing this step will automatically award this competency to the student.</div>
+                    </div>
+
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="orderIndex">Sequence Order Index</label>
+                        <input type="number" id="orderIndex" th:field="*{orderIndex}" class="editorial-input" placeholder="e.g. 1, 2, 3..." required min="1">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-editorial-primary btn-editorial-sm">+ Add Milestone</button>
+            </form>
+        </div>
+
+        <!-- Roadmap Items Table -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Configured Roadmap Sequence</div>
+                <span class="badge-outline" th:text="${roadmapItems.size() + ' Milestones'}">0 Milestones</span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(roadmapItems)}" style="color: var(--ink-secondary); font-size: 0.875rem;">
+                No roadmap steps configured for this role yet.
+            </div>
+
+            <table th:unless="${#lists.isEmpty(roadmapItems)}" class="editorial-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Seq</th>
+                        <th>Milestone Action</th>
+                        <th>Linked Competency</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${roadmapItems}">
+                        <td class="tabular-nums font-mono" th:text="${item.orderIndex}">1</td>
+                        <td style="font-weight: 500;" th:text="${item.title}">Step description</td>
+                        <td>
+                            <span th:if="${item.skill != null}" style="font-weight: 600;" th:text="${item.skill.skillName}">Spring Boot</span>
+                            <span th:if="${item.skill == null}" style="color: var(--ink-tertiary); font-style: italic;">General Milestone</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <form th:action="@{'/admin/roles/' + ${role.roleId} + '/roadmap/delete'}" method="post" style="display:inline; margin:0;">
+                                <input type="hidden" name="roadmapId" th:value="${item.roadmapId}">
+                                <button type="submit" class="btn-editorial-danger btn-editorial-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

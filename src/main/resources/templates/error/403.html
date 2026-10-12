@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Access Forbidden (403) — SkillForge')}"></head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem;">
+    <div style="max-width: 480px; text-align: left;">
+        <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 600; color: var(--signal-orange); margin-bottom: 0.5rem;">HTTP 403 &bull; Authorization Failure</p>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.75rem;">Access Forbidden</h1>
+        <p style="font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 2rem;">
+            You do not possess the required security privileges or permissions to access this console resource. Administrator credentials are required for administrative configurations.
+        </p>
+        <div>
+            <a th:href="@{/dashboard}" class="btn-editorial-primary" style="margin-right: 0.75rem;">Return to Dashboard</a>
+            <a th:href="@{/login}" class="btn-editorial-secondary">Switch Account</a>
+        </div>
+    </div>
+</body>
+</html>

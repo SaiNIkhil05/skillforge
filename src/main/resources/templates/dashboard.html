@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Student Dashboard — SkillForge')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('dashboard')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                Student Overview &bull; <span th:text="${user.education}">B.Tech Computer Science</span>
+            </p>
+            <h1 style="margin-bottom: 0.25rem;" th:text="${'Welcome, ' + user.fullName}">Welcome, Student</h1>
+            <p style="font-size: 0.95rem;">
+                Target role: <strong th:text="${targetRole != null ? targetRole.roleName : 'No role selected'}" style="color: var(--ink-primary);">Java Backend Developer</strong>
+            </p>
+        </div>
+
+        <!-- Target Role Selected View -->
+        <div th:if="${targetRole != null}">
+            <!-- Readiness Score Hero Card -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div>
+                        <div class="editorial-card-title">Target Readiness Score</div>
+                        <div style="font-size: 0.75rem; color: var(--ink-tertiary); margin-top: 2px;">
+                            Calculated across weighted core and secondary requirements
+                        </div>
+                    </div>
+                    <div>
+                        <a th:href="@{/readiness}" class="btn-editorial-secondary btn-editorial-sm">
+                            Inspect Gap Analysis &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <div class="readiness-score-block">
+                    <span id="readinessScoreValue" class="readiness-large-number" th:text="${readiness.score}">0</span>
+                    <span class="readiness-percent-sign">%</span>
+                </div>
+
+                <div class="thin-progress-bar-container">
+                    <div id="readinessProgressBar" class="thin-progress-bar-fill" th:style="'width: ' + ${readiness.score} + '%;'"></div>
+                </div>
+
+                <p id="readinessStatusMessage" style="font-size: 0.95rem; font-weight: 500; color: var(--ink-primary); margin-bottom: 1.5rem;" th:text="${readiness.statusMessage}">
+                    You're missing 4 core skills for Java Backend Developer.
+                </p>
+
+                <!-- 3 Metric Split -->
+                <div style="display: flex; gap: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+                    <div class="metric-stat">
+                        <div id="missingCoreCountValue" class="metric-number tabular-nums" style="color: var(--signal-orange);" th:text="${readiness.missingCoreCount}">0</div>
+                        <div class="metric-label">Missing Core Skills</div>
+                    </div>
+                    <div class="metric-stat">
+                        <div id="missingGoodCountValue" class="metric-number tabular-nums" th:text="${readiness.missingGoodToHaveCount}">0</div>
+                        <div class="metric-label">Good-to-Have Gaps</div>
+                    </div>
+                    <div class="metric-stat">
+                        <div class="metric-number tabular-nums" th:text="${skillsCount}">0</div>
+                        <div class="metric-label">Acquired Skills</div>
+                    </div>
+                    <div class="metric-stat">
+                        <div class="metric-number tabular-nums" th:text="${projectsCount}">0</div>
+                        <div class="metric-label">Verified Projects</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gap-Driven Roadmap Preview -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div>
+                        <div class="editorial-card-title">Immediate Learning Roadmap</div>
+                        <div style="font-size: 0.75rem; color: var(--ink-tertiary); margin-top: 2px;">
+                            Filtered strictly to your current competency gaps (core milestones prioritized)
+                        </div>
+                    </div>
+                    <div>
+                        <a th:href="@{/roadmap}" class="btn-editorial-primary btn-editorial-sm">
+                            Open Roadmap Tracker &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <div th:if="${#lists.isEmpty(roadmapPreview)}" style="padding: 1rem 0; color: var(--ink-secondary);">
+                    You have cleared all prioritized milestone gaps for this career role!
+                </div>
+
+                <table th:unless="${#lists.isEmpty(roadmapPreview)}" class="editorial-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">Seq</th>
+                            <th>Milestone</th>
+                            <th>Associated Skill</th>
+                            <th>Priority</th>
+                            <th style="text-align: right;">Status Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${roadmapPreview}">
+                            <td class="tabular-nums" th:text="${item.orderIndex}">1</td>
+                            <td style="font-weight: 500;" th:text="${item.title}">Master Java OOP and Collections</td>
+                            <td th:text="${item.skillName != null ? item.skillName : 'General Milestone'}">Java</td>
+                            <td>
+                                <span th:if="${item.priority != null and item.priority.name() == 'CORE'}" class="priority-core-text">Core</span>
+                                <span th:if="${item.priority != null and item.priority.name() == 'GOOD_TO_HAVE'}" class="priority-good-text">Good to have</span>
+                                <span th:if="${item.priority == null}" class="priority-good-text">&mdash;</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div class="segmented-control">
+                                    <button type="button"
+                                            class="segmented-option"
+                                            th:classappend="${item.status.name() == 'NOT_STARTED' ? 'active' : ''}"
+                                            th:data-roadmap-id="${item.roadmapId}"
+                                            data-status="NOT_STARTED">Not started</button>
+                                    <button type="button"
+                                            class="segmented-option"
+                                            th:classappend="${item.status.name() == 'IN_PROGRESS' ? 'active' : ''}"
+                                            th:data-roadmap-id="${item.roadmapId}"
+                                            data-status="IN_PROGRESS">In progress</button>
+                                    <button type="button"
+                                            class="segmented-option"
+                                            th:classappend="${item.status.name() == 'COMPLETED' ? 'active-completed' : ''}"
+                                            th:data-roadmap-id="${item.roadmapId}"
+                                            data-status="COMPLETED">Completed</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- No Target Role Chosen Prompt -->
+        <div th:unless="${targetRole != null}" class="editorial-card" style="padding: 2.5rem 2rem;">
+            <h2 style="font-size: 1.4rem; margin-bottom: 0.5rem;">Select Your Target Role</h2>
+            <p style="max-width: 600px; margin-bottom: 1.5rem;">
+                SkillForge needs a benchmark role to calculate your readiness score and generate your personalized gap analysis.
+            </p>
+            <form th:action="@{/profile/target-role}" method="post" style="max-width: 450px;">
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="targetRoleId">Available Career Paths</label>
+                    <select name="targetRoleId" id="targetRoleId" class="editorial-select" required>
+                        <option value="">-- Choose Target Role --</option>
+                        <option th:each="r : ${availableRoles}" th:value="${r.roleId}" th:text="${r.roleName}">Java Backend Developer</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-editorial-primary">Save & Calculate Readiness</button>
+            </form>
+        </div>
+
+    </main>
+</div>
+</body>
+</html>

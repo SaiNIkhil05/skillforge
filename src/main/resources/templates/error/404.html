@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Resource Not Found (404) — SkillForge')}"></head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem;">
+    <div style="max-width: 480px; text-align: left;">
+        <p style="text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.5rem;">HTTP 404 &bull; Missing Record</p>
+        <h1 style="font-size: 2.25rem; margin-bottom: 0.75rem;">Page Not Found</h1>
+        <p style="font-size: 0.95rem; color: var(--ink-secondary); line-height: 1.6; margin-bottom: 2rem;">
+            The requested platform page, resource, or milestone cannot be found or may have been retired.
+        </p>
+        <div>
+            <a th:href="@{/dashboard}" class="btn-editorial-primary" style="margin-right: 0.75rem;">Back to Dashboard</a>
+            <a th:href="@{/}" class="btn-editorial-secondary">Go to Homepage</a>
+        </div>
+    </div>
+</body>
+</html>

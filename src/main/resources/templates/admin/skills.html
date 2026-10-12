@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Master Skills Catalog — Admin Console')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('skills')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                Administrator Console &bull; Global Taxonomy
+            </p>
+            <h1 style="margin-bottom: 0.25rem;">Master Skills Catalog</h1>
+            <p style="font-size: 0.95rem;">
+                Maintain the authoritative taxonomy of technical competencies across languages, frameworks, databases, and tooling practices.
+            </p>
+        </div>
+
+        <div class="grid-2">
+            <!-- Add Skill Form -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div class="editorial-card-title">Add Skill to Catalog</div>
+                </div>
+                <form th:action="@{/admin/skills/create}" method="post">
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="skillName">Skill / Competency Name</label>
+                        <input type="text" id="skillName" name="skillName" class="editorial-input" placeholder="e.g. Apache Kafka" required>
+                    </div>
+
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="category">Domain Category</label>
+                        <select id="category" name="category" class="editorial-select" required>
+                            <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.name()}">LANGUAGE</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-editorial-primary btn-editorial-sm">+ Add Competency</button>
+                </form>
+            </div>
+
+            <!-- Taxonomy Summary -->
+            <div class="editorial-card">
+                <div class="editorial-card-header">
+                    <div class="editorial-card-title">Catalog Volume</div>
+                </div>
+                <div class="metric-stat">
+                    <div class="metric-number tabular-nums" th:text="${skills.size()}">0</div>
+                    <div class="metric-label">Registered Competencies</div>
+                </div>
+                <div style="margin-top: 1rem; font-size: 0.8125rem; color: var(--ink-secondary);">
+                    Skills can be mapped into multiple career role benchmarks with custom weightings.
+                </div>
+            </div>
+        </div>
+
+        <!-- Catalog List -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div class="editorial-card-title">Catalog Inventory</div>
+                <span class="badge-outline" th:text="${skills.size() + ' Entries'}">0 Entries</span>
+            </div>
+
+            <table class="editorial-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th>Skill Name</th>
+                        <th>Domain Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="s : ${skills}">
+                        <td class="tabular-nums font-mono" th:text="${s.skillId}">1</td>
+                        <td style="font-weight: 600;" th:text="${s.skillName}">Java</td>
+                        <td>
+                            <span class="badge-outline" th:text="${s.category.name()}">LANGUAGE</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

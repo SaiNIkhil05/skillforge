@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Register — SkillForge')}"></head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem;">
+    <div style="width: 100%; max-width: 520px;">
+        <div style="margin-bottom: 2rem; text-align: left;">
+            <a th:href="@{/}" style="font-family: var(--font-serif); font-size: 1.5rem; font-weight: 700; color: var(--accent-forest); text-decoration: none;">SkillForge</a>
+            <h1 style="font-size: 1.75rem; margin-top: 1rem; margin-bottom: 0.25rem;">Create Student Profile</h1>
+            <p style="font-size: 0.875rem;">Supports college domains (<code>@college.edu</code>, <code>*.edu</code>, <code>*.ac.in</code>) and <code>@gmail.com</code>.</p>
+        </div>
+
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div class="editorial-card">
+            <form th:action="@{/register}" th:object="${registerRequest}" method="post">
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="fullName">Full Name</label>
+                    <input type="text" id="fullName" th:field="*{fullName}" class="editorial-input" placeholder="Sai Nikhil" required>
+                    <div th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}" class="editorial-error-message"></div>
+                </div>
+
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="email">College / Student Email Address</label>
+                    <input type="email" id="email" th:field="*{email}" class="editorial-input" placeholder="student.name@college.edu or name@gmail.com" required>
+                    <div class="editorial-field-hint">Allowed: @college.edu, @gmail.com, *.edu, *.ac.in</div>
+                    <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="editorial-error-message"></div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="password">Password</label>
+                        <input type="password" id="password" th:field="*{password}" class="editorial-input" required minlength="6">
+                        <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="editorial-error-message"></div>
+                    </div>
+                    <div class="editorial-form-group">
+                        <label class="editorial-label" for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" th:field="*{confirmPassword}" class="editorial-input" required minlength="6">
+                    </div>
+                </div>
+
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="education">Degree & Graduation Year</label>
+                    <input type="text" id="education" th:field="*{education}" class="editorial-input" placeholder="B.Tech Computer Science & Engineering, 2025">
+                </div>
+
+                <div class="editorial-form-group">
+                    <label class="editorial-label" for="targetRoleId">Initial Target Role</label>
+                    <select id="targetRoleId" th:field="*{targetRoleId}" class="editorial-select">
+                        <option value="">-- Choose Role --</option>
+                        <option th:each="r : ${roles}" th:value="${r.roleId}" th:text="${r.roleName}">Java Backend Developer</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-editorial-primary w-100" style="display:block; text-align:center; padding: 0.65rem;">
+                    Complete Registration
+                </button>
+            </form>
+        </div>
+
+        <div style="font-size: 0.8125rem; color: var(--ink-secondary); margin-top: 1.5rem; text-align: center;">
+            Already have an account? <a th:href="@{/login}" style="color: var(--accent-forest); font-weight: 600;">Sign In</a>
+        </div>
+    </div>
+</body>
+</html>

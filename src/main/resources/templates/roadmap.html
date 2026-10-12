@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Roadmap Tracker — SkillForge')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('roadmap')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                Targeted Progression Workflow
+            </p>
+            <h1 style="margin-bottom: 0.25rem;">Roadmap Tracker</h1>
+            <p style="font-size: 0.95rem;">
+                Mark steps in-progress or completed. Marking a step <strong style="color: var(--accent-forest);">Completed</strong> automatically acquires the competency and recalculates your readiness score in real time.
+            </p>
+        </div>
+
+        <!-- Live Score Feedback Banner -->
+        <div class="editorial-card" style="margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem;">
+                <div>
+                    <span style="font-size: 0.8125rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-tertiary);">Live Readiness Score</span>
+                    <div class="readiness-score-block" style="margin-bottom: 0;">
+                        <span id="readinessScoreValue" class="readiness-large-number" style="font-size: 3rem;" th:text="${readiness.score}">0</span>
+                        <span class="readiness-percent-sign" style="font-size: 1.25rem;">%</span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.875rem; color: var(--ink-secondary);">
+                        Core Gaps: <strong id="missingCoreCountValue" style="color: var(--signal-orange);" class="tabular-nums" th:text="${readiness.missingCoreCount}">0</strong> &bull;
+                        Good-to-Have: <strong id="missingGoodCountValue" class="tabular-nums" th:text="${readiness.missingGoodToHaveCount}">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="thin-progress-bar-container" style="margin-bottom: 0.5rem;">
+                <div id="readinessProgressBar" class="thin-progress-bar-fill" th:style="'width: ' + ${readiness.score} + '%;'"></div>
+            </div>
+
+            <p id="readinessStatusMessage" style="font-size: 0.875rem; color: var(--ink-secondary); margin: 0;" th:text="${readiness.statusMessage}">
+                You're missing 3 core skills.
+            </p>
+        </div>
+
+        <!-- Ordered Timeline List -->
+        <div class="editorial-card">
+            <div class="editorial-card-header">
+                <div>
+                    <div class="editorial-card-title">Sequenced Gap Milestones</div>
+                    <div style="font-size: 0.75rem; color: var(--ink-tertiary); margin-top: 2px;">
+                        Ranked: Core competencies first &rarr; Secondary skills &rarr; Logical sequence
+                    </div>
+                </div>
+                <span class="badge-outline" th:text="${roadmapItems.size() + ' Milestones Total'}">0 Milestones</span>
+            </div>
+
+            <div th:if="${#lists.isEmpty(roadmapItems)}" style="color: var(--ink-secondary); padding: 1.5rem 0;">
+                No roadmap steps pending. All competency requirements for your target role are satisfied!
+            </div>
+
+            <table th:unless="${#lists.isEmpty(roadmapItems)}" class="editorial-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Seq</th>
+                        <th>Milestone Action</th>
+                        <th>Associated Competency</th>
+                        <th>Priority</th>
+                        <th style="text-align: right; width: 260px;">Progress State</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${roadmapItems}">
+                        <td class="tabular-nums font-mono" style="color: var(--ink-tertiary);" th:text="${item.orderIndex}">1</td>
+                        <td>
+                            <div style="font-weight: 600; font-size: 0.9rem;" th:text="${item.title}">
+                                Master Java OOP, Collections Framework, Generics, and Streams API
+                            </div>
+                            <div th:if="${item.completedAt != null}" style="font-size: 0.72rem; color: var(--accent-forest); margin-top: 2px;">
+                                Completed: <span th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">2026-10-10</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span th:if="${item.skillName != null}" style="font-weight: 500;" th:text="${item.skillName}">Java</span>
+                            <span th:if="${item.skillName == null}" style="color: var(--ink-tertiary); font-style: italic;">General Milestone</span>
+                        </td>
+                        <td>
+                            <span th:if="${item.priority != null and item.priority.name() == 'CORE'}" class="priority-core-text">Core</span>
+                            <span th:if="${item.priority != null and item.priority.name() == 'GOOD_TO_HAVE'}" class="priority-good-text">Good to have</span>
+                            <span th:if="${item.priority == null}" class="priority-good-text">&mdash;</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div class="segmented-control">
+                                <button type="button"
+                                        class="segmented-option"
+                                        th:classappend="${item.status.name() == 'NOT_STARTED' ? 'active' : ''}"
+                                        th:data-roadmap-id="${item.roadmapId}"
+                                        data-status="NOT_STARTED">Not started</button>
+                                <button type="button"
+                                        class="segmented-option"
+                                        th:classappend="${item.status.name() == 'IN_PROGRESS' ? 'active' : ''}"
+                                        th:data-roadmap-id="${item.roadmapId}"
+                                        data-status="IN_PROGRESS">In progress</button>
+                                <button type="button"
+                                        class="segmented-option"
+                                        th:classappend="${item.status.name() == 'COMPLETED' ? 'active-completed' : ''}"
+                                        th:data-roadmap-id="${item.roadmapId}"
+                                        data-status="COMPLETED">Completed</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+</body>
+</html>

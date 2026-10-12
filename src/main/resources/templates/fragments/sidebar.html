@@ -1,0 +1,46 @@
+<aside xmlns:th="http://www.thymeleaf.org" class="app-sidebar" th:fragment="sidebar(activeTab)">
+    <div class="sidebar-header">
+        <a th:href="@{/dashboard}" class="brand-title">SkillForge</a>
+        <div class="brand-subtitle">Readiness & Gap Platform</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <!-- STUDENT NAVIGATION -->
+        <th:block th:if="${user != null and user.role.name() == 'STUDENT'}">
+            <div class="nav-section-label">Readiness</div>
+            <a th:href="@{/dashboard}" class="sidebar-link" th:classappend="${activeTab == 'dashboard' ? 'active' : ''}">
+                Dashboard
+            </a>
+            <a th:href="@{/profile}" class="sidebar-link" th:classappend="${activeTab == 'profile' ? 'active' : ''}">
+                Profile Builder
+            </a>
+            <a th:href="@{/readiness}" class="sidebar-link" th:classappend="${activeTab == 'readiness' ? 'active' : ''}">
+                Readiness Report
+            </a>
+            <a th:href="@{/roadmap}" class="sidebar-link" th:classappend="${activeTab == 'roadmap' ? 'active' : ''}">
+                Roadmap Tracker
+            </a>
+        </th:block>
+
+        <!-- ADMIN NAVIGATION -->
+        <th:block th:if="${user != null and user.role.name() == 'ADMIN'}">
+            <div class="nav-section-label">Administration</div>
+            <a th:href="@{/admin/roles}" class="sidebar-link" th:classappend="${activeTab == 'roles' ? 'active' : ''}">
+                Career Roles
+            </a>
+            <a th:href="@{/admin/skills}" class="sidebar-link" th:classappend="${activeTab == 'skills' ? 'active' : ''}">
+                Master Skills Catalog
+            </a>
+        </th:block>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-profile-brief" th:if="${user != null}">
+            <div class="user-name" th:text="${user.fullName}">Sai Nikhil</div>
+            <div class="user-role-badge" th:text="${user.role.name()}">STUDENT</div>
+        </div>
+        <a th:href="@{/logout}" class="btn-editorial-secondary btn-editorial-sm w-100 text-center" style="display:block;">
+            Sign Out
+        </a>
+    </div>
+</aside>

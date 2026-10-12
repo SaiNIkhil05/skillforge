@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Profile Builder — SkillForge')}"></head>
+<body>
+<div class="app-container">
+    <div th:replace="~{fragments/sidebar :: sidebar('profile')}"></div>
+
+    <main class="app-main">
+        <div th:replace="~{fragments/messages :: messages}"></div>
+
+        <div style="margin-bottom: 2rem;">
+            <p style="text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; color: var(--ink-tertiary); margin-bottom: 0.25rem;">
+                Candidate Competency Dossier
+            </p>
+            <h1 style="margin-bottom: 0.25rem;">Profile Builder</h1>
+            <p style="font-size: 0.95rem;">
+                Maintain your education, declared proficiencies, target career role, and project evidence.
+            </p>
+        </div>
+
+        <div class="grid-2">
+            <!-- SECTION 1: Target Career Role & Education -->
+            <div>
+                <!-- Target Role Card -->
+                <div class="editorial-card">
+                    <div class="editorial-card-header">
+                        <div class="editorial-card-title">Target Career Role</div>
+                        <span class="badge-outline">Primary Goal</span>
+                    </div>
+                    <form th:action="@{/profile/target-role}" method="post">
+                        <div class="editorial-form-group">
+                            <label class="editorial-label" for="targetRoleId">Target Role</label>
+                            <select name="targetRoleId" id="targetRoleId" class="editorial-select" required>
+                                <option th:each="r : ${careerRoles}"
+                                        th:value="${r.roleId}"
+                                        th:text="${r.roleName}"
+                                        th:selected="${user.targetRole != null and user.targetRole.roleId == r.roleId}">
+                                    Java Backend Developer
+                                </option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-editorial-primary btn-editorial-sm">Update Benchmark Role</button>
+                    </form>
+                </div>
+
+                <!-- Education Card -->
+                <div class="editorial-card">
+                    <div class="editorial-card-header">
+                        <div class="editorial-card-title">Education & Graduation</div>
+                    </div>
+                    <form th:action="@{/profile/education}" method="post">
+                        <div class="editorial-form-group">
+                            <label class="editorial-label" for="educationInput">Degree, Branch & Batch</label>
+                            <input type="text" id="educationInput" name="education" class="editorial-input"
+                                   th:value="${user.education}" placeholder="e.g. B.Tech Computer Science, Class of 2025" required>
+                        </div>
+                        <button type="submit" class="btn-editorial-secondary btn-editorial-sm">Save Education</button>
+                    </form>
+                </div>
+
+                <!-- Project Experience Card -->
+                <div class="editorial-card">
+                    <div class="editorial-card-header">
+                        <div class="editorial-card-title">Practical Projects</div>
+                        <span class="badge-outline" th:text="${userProjects.size() + ' Added'}">0 Added</span>
+                    </div>
+
+                    <!-- Add Project Form -->
+                    <form th:action="@{/profile/projects/add}" th:object="${projectRequest}" method="post" style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle);">
+                        <div class="editorial-form-group">
+                            <label class="editorial-label" for="projectTitle">Project Title</label>
+                            <input type="text" id="projectTitle" th:field="*{title}" class="editorial-input" placeholder="Distributed Cache Engine" required>
+                        </div>
+                        <div class="editorial-form-group">
+                            <label class="editorial-label" for="techUsed">Technologies Used</label>
+                            <input type="text" id="techUsed" th:field="*{techUsed}" class="editorial-input" placeholder="Java 17, Spring Boot, Redis, Docker" required>
+                        </div>
+                        <div class="editorial-form-group">
+                            <label class="editorial-label" for="projectLink">Repository or Demo Link (Optional)</label>
+                            <input type="url" id="projectLink" th:field="*{projectLink}" class="editorial-input" placeholder="https://github.com/nikhil/cache-engine">
+                        </div>
+                        <button type="submit" class="btn-editorial-secondary btn-editorial-sm">+ Add Project</button>
+                    </form>
+
+                    <!-- List of Existing Projects -->
+                    <div th:if="${#lists.isEmpty(userProjects)}" style="font-size: 0.85rem; color: var(--ink-secondary);">
+                        No projects declared yet. Add projects to substantiate your competencies.
+                    </div>
+                    <div th:each="proj : ${userProjects}" style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.9rem;" th:text="${proj.title}">Project Title</div>
+                            <div style="font-size: 0.8rem; color: var(--ink-secondary); margin-top: 2px;" th:text="${proj.techUsed}">Java, Spring Boot</div>
+                            <a th:if="${proj.projectLink != null}" th:href="${proj.projectLink}" target="_blank" style="font-size: 0.75rem; color: var(--accent-forest); text-decoration: underline; margin-top: 2px; display: inline-block;">
+                                View Repository &nearr;
+                            </a>
+                        </div>
+                        <form th:action="@{/profile/projects/delete}" method="post" style="margin: 0;">
+                            <input type="hidden" name="projectId" th:value="${proj.projectId}">
+                            <button type="submit" class="btn-editorial-danger btn-editorial-sm">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Skills Catalog & Acquired Proficiencies -->
+            <div>
+                <!-- Add New Skill from Catalog -->
+                <div class="editorial-card">
+                    <div class="editorial-card-header">
+                        <div class="editorial-card-title">Add Competency to Profile</div>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <div class="grid-2" style="margin-bottom: 0.75rem;">
+                            <div>
+                                <label class="editorial-label" for="skillSearchInput">Search Catalog</label>
+                                <input type="text" id="skillSearchInput" class="editorial-input" placeholder="Type skill name...">
+                            </div>
+                            <div>
+                                <label class="editorial-label" for="skillCategoryFilter">Category Filter</label>
+                                <select id="skillCategoryFilter" class="editorial-select">
+                                    <option value="">All Categories</option>
+                                    <option th:each="c : ${categories}" th:value="${c.name()}" th:text="${c.name()}">LANGUAGE</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <form th:action="@{/profile/skills/add}" method="post">
+                            <div class="editorial-form-group">
+                                <label class="editorial-label" for="skillSelectDropdown">Select Skill</label>
+                                <select name="skillId" id="skillSelectDropdown" class="editorial-select" required>
+                                    <option value="">-- Choose Skill --</option>
+                                    <option th:each="sk : ${allSkills}"
+                                            th:value="${sk.skillId}"
+                                            th:text="${sk.skillName + ' (' + sk.category.name() + ')'}"
+                                            th:data-name="${sk.skillName}"
+                                            th:data-category="${sk.category.name()}">
+                                        Java (LANGUAGE)
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="editorial-form-group">
+                                <label class="editorial-label" for="proficiencySelect">Self-Rated Proficiency</label>
+                                <select name="proficiency" id="proficiencySelect" class="editorial-select" required>
+                                    <option th:each="p : ${proficiencies}" th:value="${p.name()}" th:text="${p.name()}">INTERMEDIATE</option>
+                                </select>
+                                <div class="editorial-field-hint">
+                                    Weight multiplier: Beginner = 0.5 &bull; Intermediate = 0.8 &bull; Advanced = 1.0
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-editorial-primary btn-editorial-sm">+ Add / Update Skill</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Declared Skills Table -->
+                <div class="editorial-card">
+                    <div class="editorial-card-header">
+                        <div class="editorial-card-title">Declared Skills</div>
+                        <span class="badge-outline" th:text="${userSkills.size() + ' Skills'}">0 Skills</span>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(userSkills)}" style="color: var(--ink-secondary); font-size: 0.875rem;">
+                        No skills declared yet. Select competencies from the catalog above to populate your profile.
+                    </div>
+
+                    <table th:unless="${#lists.isEmpty(userSkills)}" class="editorial-table">
+                        <thead>
+                            <tr>
+                                <th>Skill</th>
+                                <th>Category</th>
+                                <th>Proficiency</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="us : ${userSkills}">
+                                <td style="font-weight: 600;" th:text="${us.skill.skillName}">Java</td>
+                                <td>
+                                    <span class="badge-outline" th:text="${us.skill.category.name()}">LANGUAGE</span>
+                                </td>
+                                <td>
+                                    <form th:action="@{/profile/skills/add}" method="post" style="display: inline-flex; align-items: center; gap: 4px; margin: 0;">
+                                        <input type="hidden" name="skillId" th:value="${us.skill.skillId}">
+                                        <select name="proficiency" class="editorial-select" style="padding: 2px 4px; font-size: 0.75rem; width: auto;" onchange="this.form.submit()">
+                                            <option th:each="p : ${proficiencies}"
+                                                    th:value="${p.name()}"
+                                                    th:text="${p.name()}"
+                                                    th:selected="${us.proficiency == p}">
+                                                INTERMEDIATE
+                                            </option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td style="text-align: right;">
+                                    <form th:action="@{/profile/skills/remove}" method="post" style="display: inline; margin: 0;">
+                                        <input type="hidden" name="skillId" th:value="${us.skill.skillId}">
+                                        <button type="submit" class="btn-editorial-danger btn-editorial-sm">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>
